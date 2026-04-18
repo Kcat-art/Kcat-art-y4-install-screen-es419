@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Yakuza Install Bar</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <video id="bg" muted loop playsinline autoplay preload="metadata">
+    <source src="assets/install_video.mp4" type="video/mp4">
+  </video>
+
+  <audio id="bgm" loop preload="auto">
+    <source src="assets/music.wav" type="audio/wav">
+  </audio>
+
+  <canvas id="uiCanvas"></canvas>
+  <div id="cardsLayer" aria-hidden="true">
+    <img id="cardAkiyama" class="characterCard card-right" src="assets/akiyama_card.png" alt="Shun Akiyama">
+    <img id="cardSaejima" class="characterCard card-left" src="assets/saejima_card.png" alt="Taiga Saejima">
+    <img id="cardTanimura" class="characterCard card-right" src="assets/tanimura_card.png" alt="Masayoshi Tanimura">
+    <img id="cardKiryu" class="characterCard card-left" src="assets/kiryu_card.png" alt="Kazuma Kiryu">
+  </div>
+  <div id="introFade" aria-hidden="true"></div>
+
+  <script>
+    window.INSTALL_BAR_CONFIG = {
+      autoDemo: false,
+      fixedProgress: 83,
+      startDelayMs: 620,
+      introMs: 380,
+      completeMs: 3300,
+      outroMs: 380,
+      progressLerp: 0.22
+    };
+  </script>
+  <script src="install_bar_anim.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

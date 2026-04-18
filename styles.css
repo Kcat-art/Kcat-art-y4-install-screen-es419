@@ -1,0 +1,99 @@
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+#bg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+  z-index: 0;
+}
+
+#uiCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+#introFade {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 1;
+  animation: introFadeOut 820ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes introFadeOut {
+  0% { opacity: 1; }
+  10% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+
+#cardsLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.characterCard {
+  position: fixed;
+  width: min(39vw, 520px);
+  max-width: calc(100vw - 48px);
+  height: auto;
+  opacity: 0;
+  visibility: hidden;
+  will-change: opacity, transform, filter;
+  transform: translateY(16px) scale(0.988);
+  filter: blur(6px);
+  pointer-events: none;
+  user-select: none;
+}
+
+.card-right {
+  right: 11.8vw;
+  top: 19.2vh;
+}
+
+.card-left {
+  left: 7.6vw;
+  top: 19.2vh;
+}
+
+@media (max-width: 1200px) {
+  .characterCard {
+    width: min(42vw, 500px);
+  }
+}
+
+
+@media (max-width: 900px) {
+  .characterCard {
+    width: min(50vw, 460px);
+  }
+  .card-right { right: 6vw; top: 17vh; }
+  .card-left { left: 6vw; top: 17vh; }
+}
+
+
+@media (max-width: 640px) {
+  .characterCard {
+    width: calc(100vw - 32px);
+    left: 16px;
+    right: 16px;
+    top: 14vh;
+  }
+}
