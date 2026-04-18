@@ -10,7 +10,7 @@
   const introFade = $("introFade");
 
   const cfg = Object.assign({
-    fixedProgress: 83,
+    fixedProgress: 80,
     introMs: 700,
     startDelayMs: 120,
     progressLerp: 0.18
