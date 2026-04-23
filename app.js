@@ -5,11 +5,10 @@
   const music = $("bgm") || document.querySelector("audio");
   const canvas = $("uiCanvas");
   const ctx = canvas ? canvas.getContext("2d") : null;
-  const cardsLayer = $("cardsLayer");
   const introFade = $("introFade");
 
   const cfg = Object.assign({
-    fixedProgress: 80,
+    fixedProgress: 10,
     introMs: 700,
     startDelayMs: 120,
     progressLerp: 0.18,
@@ -66,10 +65,10 @@
         targetProgress = clamp(numeric, 0, 100);
         console.log("[install-screen] progreso remoto cargado:", targetProgress);
       } else {
-        console.warn("[install-screen] el campo de progreso no es válido:", cfg.progressField, rawValue);
+        console.warn("[install-screen] campo inválido:", cfg.progressField, rawValue);
       }
     } catch (err) {
-      console.warn("[install-screen] no se pudo cargar el progreso remoto, usando fallback:", err);
+      console.warn("[install-screen] no se pudo cargar el progreso remoto, usando fixedProgress:", err);
     }
   }
 
@@ -284,11 +283,10 @@
   }
 
   function hideFade() {
-    const fade = introFade;
-    if (!fade) return;
-    fade.style.transition = "opacity 520ms ease";
-    fade.style.opacity = "0";
-    setTimeout(() => { fade.style.display = "none"; }, 700);
+    if (!introFade) return;
+    introFade.style.transition = "opacity 520ms ease";
+    introFade.style.opacity = "0";
+    setTimeout(() => { introFade.style.display = "none"; }, 700);
   }
 
   function render(now) {
