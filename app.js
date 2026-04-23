@@ -1,4 +1,3 @@
-
 (() => {
   const $ = (id) => document.getElementById(id);
 
@@ -13,7 +12,9 @@
     fixedProgress: 80,
     introMs: 700,
     startDelayMs: 120,
-    progressLerp: 0.18
+    progressLerp: 0.18,
+    progressUrl: "",
+    progressField: "pct_global"
   }, window.INSTALL_BAR_CONFIG || {});
 
   const data = window.INSTALL_BAR_DATA;
@@ -38,7 +39,7 @@
   let startedAt = 0;
   let introFinished = false;
   let currentProgress = 0;
-  let targetProgress = Number(cfg.fixedProgress) || 83;
+  let targetProgress = Number(cfg.fixedProgress) || 80;
   let atlasReady = false;
   let musicStarted = false;
 
@@ -46,6 +47,31 @@
   function lerp(a, b, t) { return a + (b - a) * t; }
   function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
   function easeInOutSine(t) { return -(Math.cos(Math.PI * t) - 1) / 2; }
+
+  async function loadRemoteProgress() {
+    if (!cfg.progressUrl) return;
+
+    try {
+      const url = `${cfg.progressUrl}?t=${Date.now()}`;
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const json = await response.json();
+      const rawValue = json?.[cfg.progressField];
+      const numeric = Number(rawValue);
+
+      if (Number.isFinite(numeric)) {
+        targetProgress = clamp(numeric, 0, 100);
+        console.log("[install-screen] progreso remoto cargado:", targetProgress);
+      } else {
+        console.warn("[install-screen] el campo de progreso no es válido:", cfg.progressField, rawValue);
+      }
+    } catch (err) {
+      console.warn("[install-screen] no se pudo cargar el progreso remoto, usando fallback:", err);
+    }
+  }
 
   function resizeCanvas() {
     const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -128,7 +154,6 @@
   function drawFill(progress) {
     const p = clamp(progress, 0, 100) / 100;
 
-    // outer frame
     drawState(data.fill.outerLeft);
     drawState(data.fill.outerMid);
     drawState(data.fill.outerRight);
@@ -139,7 +164,6 @@
     const fillY = data.fill.fillY;
     const innerWidth = Math.max(0, (fillEnd - fillStart) * p);
 
-    // left cap
     if (innerWidth > 0.1) {
       drawCell(4, fillStart, fillY, {
         alpha: 1,
@@ -152,7 +176,6 @@
       });
     }
 
-    // stretch middle
     const midW = Math.max(0, innerWidth - 6);
     if (midW > 0.1) {
       drawCell(5, fillStart + 6, fillY, {
@@ -166,7 +189,6 @@
       });
     }
 
-    // right cap
     if (innerWidth > 4) {
       drawCell(3, fillStart + innerWidth, fillY, {
         alpha: 1,
@@ -179,7 +201,6 @@
       });
     }
 
-    // digits
     const shown = Math.round(progress).toString();
     const digits = shown.padStart(2, "0");
     const hundreds = Math.floor(progress) >= 100 ? "1" : "";
@@ -273,8 +294,9 @@
   function render(now) {
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
-    if (!introFinished) drawIntro(now);
-    else {
+    if (!introFinished) {
+      drawIntro(now);
+    } else {
       currentProgress = lerp(currentProgress, targetProgress, cfg.progressLerp);
       if (Math.abs(currentProgress - targetProgress) < 0.01) currentProgress = targetProgress;
       drawFill(currentProgress);
@@ -290,10 +312,14 @@
     resizeCanvas();
     initCards();
     startedAt = performance.now();
+
+    await loadRemoteProgress();
+
     if (video) {
       video.muted = true;
       await tryPlay(video);
     }
+
     hideFade();
     startMusic();
     requestAnimationFrame(render);
