@@ -210,10 +210,10 @@ html, body {
   cursor: pointer;
 }
 
-.iconButton svg {
+.iconButton img {
+  display: block;
   width: 20px;
   height: 20px;
-  fill: currentColor;
 }
 
 .menuVolumeSimple {
@@ -258,10 +258,10 @@ html, body {
   background: transparent;
 }
 
-.socialLink svg {
+.socialLink img {
+  display: block;
   width: 18px;
   height: 18px;
-  fill: currentColor;
 }
 
 .donationButton {
@@ -275,6 +275,7 @@ html, body {
   text-decoration: none;
   font: 13px/1.25 Arial, Helvetica, sans-serif;
 }
+
 
 @media (max-width: 640px) {
   #menuToggle { top: 10px; left: 10px; }
