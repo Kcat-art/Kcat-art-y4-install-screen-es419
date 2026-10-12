@@ -7,6 +7,15 @@
   const ctx = canvas ? canvas.getContext("2d") : null;
   const introFade = $("introFade");
 
+  const menuToggle = $("menuToggle");
+  const menuPanel = $("menuPanel");
+  const menuDimmer = $("menuDimmer");
+  const musicToggle = $("musicToggle");
+  const musicToggleText = $("musicToggleText");
+  const musicVolume = $("musicVolume");
+  const fullscreenToggle = $("fullscreenToggle");
+  const menuProgressValue = $("menuProgressValue");
+
   const cfg = Object.assign({
     fixedProgress: 10,
     introMs: 700,
@@ -42,10 +51,31 @@
   let atlasReady = false;
   let musicStarted = false;
 
+  let menuOpen = false;
+  let musicMuted = false;
+  let musicVolumeValue = 0.5;
+
+  try {
+    musicMuted = localStorage.getItem("y4-install-music-muted") === "1";
+    const savedVolumeRaw = localStorage.getItem("y4-install-music-volume");
+    if (savedVolumeRaw !== null) {
+      const savedVolume = Number(savedVolumeRaw);
+      if (Number.isFinite(savedVolume) && savedVolume >= 0 && savedVolume <= 1) {
+        musicVolumeValue = savedVolume;
+      }
+    }
+  } catch (_) {}
+
   function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
   function lerp(a, b, t) { return a + (b - a) * t; }
   function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
   function easeInOutSine(t) { return -(Math.cos(Math.PI * t) - 1) / 2; }
+
+  function updateMenuProgress() {
+    if (!menuProgressValue) return;
+    const rounded = Math.round(targetProgress * 10) / 10;
+    menuProgressValue.textContent = `${rounded}%`;
+  }
 
   async function loadRemoteProgress() {
     if (!cfg.progressUrl) return;
@@ -267,19 +297,107 @@
   }
 
   async function startMusic() {
-    if (!music || musicStarted) return;
+    if (!music || musicStarted || musicMuted) return;
     music.loop = true;
-    music.volume = 1;
+    music.volume = musicVolumeValue;
+    music.muted = false;
     const ok = await tryPlay(music);
     if (ok) { musicStarted = true; return; }
     const unlock = async () => {
-      if (musicStarted) return;
+      if (musicStarted || musicMuted) return;
+      music.volume = musicVolumeValue;
+      music.muted = false;
       const played = await tryPlay(music);
       if (played) musicStarted = true;
     };
     window.addEventListener("pointerdown", unlock, { once: true });
     window.addEventListener("keydown", unlock, { once: true });
     window.addEventListener("touchstart", unlock, { once: true, passive: true });
+  }
+
+  function setMenu(open) {
+    menuOpen = Boolean(open);
+    menuToggle?.setAttribute("aria-expanded", menuOpen ? "true" : "false");
+    menuToggle?.setAttribute("aria-label", menuOpen ? "Cerrar menú" : "Abrir menú");
+    menuPanel?.classList.toggle("open", menuOpen);
+    menuPanel?.setAttribute("aria-hidden", menuOpen ? "false" : "true");
+    menuDimmer?.classList.toggle("open", menuOpen);
+  }
+
+  function updateMusicUI() {
+    musicToggle?.setAttribute("aria-pressed", musicMuted ? "true" : "false");
+    if (musicToggleText) musicToggleText.textContent = musicMuted ? "Activar música" : "Silenciar música";
+    if (musicVolume) musicVolume.value = String(Math.round(musicVolumeValue * 100));
+  }
+
+  function setMusicMuted(muted, persist = true) {
+    musicMuted = Boolean(muted);
+    if (music) {
+      music.muted = musicMuted;
+      music.volume = musicVolumeValue;
+      if (!musicMuted) startMusic();
+    }
+    if (persist) {
+      try { localStorage.setItem("y4-install-music-muted", musicMuted ? "1" : "0"); } catch (_) {}
+    }
+    updateMusicUI();
+  }
+
+  function setMusicVolume(value, persist = true) {
+    musicVolumeValue = clamp(Number(value) || 0, 0, 1);
+    if (music) music.volume = musicVolumeValue;
+    if (persist) {
+      try { localStorage.setItem("y4-install-music-volume", String(musicVolumeValue)); } catch (_) {}
+    }
+    updateMusicUI();
+  }
+
+  function updateFullscreenUI() {
+    if (!fullscreenToggle) return;
+    const text = document.fullscreenElement ? "Salir de pantalla completa" : "Pantalla completa";
+    fullscreenToggle.setAttribute("aria-label", text);
+    fullscreenToggle.setAttribute("title", text);
+  }
+
+  function bindMenu() {
+    updateMenuProgress();
+    updateMusicUI();
+    updateFullscreenUI();
+    setMenu(false);
+
+    menuToggle?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setMenu(!menuOpen);
+    });
+
+    menuPanel?.addEventListener("click", (event) => event.stopPropagation());
+    menuPanel?.querySelectorAll('a[target="_blank"]').forEach((link) => {
+      link.addEventListener("click", () => setMenu(false));
+    });
+
+    menuDimmer?.addEventListener("click", () => setMenu(false));
+    musicToggle?.addEventListener("click", () => setMusicMuted(!musicMuted));
+
+    musicVolume?.addEventListener("input", (event) => {
+      const value = clamp(Number(event.target.value) / 100, 0, 1);
+      setMusicVolume(value);
+      if (value > 0 && musicMuted) setMusicMuted(false);
+    });
+
+    fullscreenToggle?.addEventListener("click", async () => {
+      try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else await document.documentElement.requestFullscreen();
+      } catch (err) {
+        console.warn("[install-screen] pantalla completa no disponible:", err);
+      }
+      updateFullscreenUI();
+    });
+
+    document.addEventListener("fullscreenchange", updateFullscreenUI);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && menuOpen && !document.fullscreenElement) setMenu(false);
+    });
   }
 
   function hideFade() {
@@ -309,9 +427,12 @@
   async function start() {
     resizeCanvas();
     initCards();
+    bindMenu();
+    if (music) { music.volume = musicVolumeValue; music.muted = musicMuted; }
     startedAt = performance.now();
 
     await loadRemoteProgress();
+    updateMenuProgress();
 
     if (video) {
       video.muted = true;
